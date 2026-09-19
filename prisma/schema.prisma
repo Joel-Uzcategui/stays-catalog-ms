@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Hotel {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  country     String
+  city        String
+  address     String
+  latitude    Decimal? @db.Decimal(9, 6)
+  longitude   Decimal? @db.Decimal(9, 6)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  roomTypes      RoomType[]
+  hotelAmenities HotelAmenity[]
+  photos         Photo[]
+
+  @@index([city])
+  @@map("hotels")
+}
+
+model RoomType {
+  id           String   @id @default(uuid()) @db.Uuid
+  hotelId      String   @map("hotel_id") @db.Uuid
+  name         String
+  description  String?
+  capacity     Int
+  priceCents   Int      @map("price_cents")
+  currency     String   @default("EUR") @db.Char(3)
+  defaultUnits Int      @map("default_units")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  hotel             Hotel              @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomTypeAmenities RoomTypeAmenity[]
+  photos            Photo[]
+
+  @@index([hotelId])
+  @@map("room_types")
+}
+
+model Amenity {
+  id    String @id @default(uuid()) @db.Uuid
+  code  String @unique
+  name  String
+  scope String @default("hotel")
+
+  hotelAmenities    HotelAmenity[]
+  roomTypeAmenities RoomTypeAmenity[]
+
+  @@map("amenities")
+}
+
+model HotelAmenity {
+  hotelId   String @map("hotel_id") @db.Uuid
+  amenityId String @map("amenity_id") @db.Uuid
+
+  hotel   Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  amenity Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([hotelId, amenityId])
+  @@map("hotel_amenities")
+}
+
+model RoomTypeAmenity {
+  roomTypeId String @map("room_type_id") @db.Uuid
+  amenityId  String @map("amenity_id") @db.Uuid
+
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([roomTypeId, amenityId])
+  @@map("room_type_amenities")
+}
+
+model Photo {
+  id         String @id @default(uuid()) @db.Uuid
+  hotelId    String? @map("hotel_id") @db.Uuid
+  roomTypeId String? @map("room_type_id") @db.Uuid
+  url        String
+  position   Int    @default(0)
+
+  hotel    Hotel?    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType RoomType? @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@map("photos")
+}
