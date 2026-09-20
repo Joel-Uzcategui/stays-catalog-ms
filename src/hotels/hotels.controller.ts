@@ -18,6 +18,11 @@ export class HotelsController {
     return this.hotelsService.findAll(dto);
   }
 
+  @MessagePattern('catalog.hotel.findAllPublic')
+  findAllPublic(@Payload() dto: HotelPaginationDto) {
+    return this.hotelsService.findAllPublic(dto);
+  }
+
   @MessagePattern('catalog.hotel.findOne')
   findOne(@Payload('id', ParseUUIDPipe) id: string) {
     return this.hotelsService.findOne(id);

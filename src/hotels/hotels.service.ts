@@ -51,6 +51,10 @@ export class HotelsService {
     };
   }
 
+  async findAllPublic(dto: HotelPaginationDto) {
+    return this.findAll({ ...dto, active: true });
+  }
+
   async findOne(id: string) {
     const hotel = await this.prisma.hotel.findUnique({ where: { id } });
 
