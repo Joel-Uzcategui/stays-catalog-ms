@@ -1,11 +1,16 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsLatitude,
   IsLongitude,
   IsOptional,
   IsString,
+  Length,
   MaxLength,
   MinLength,
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateHotelDto {
@@ -20,8 +25,10 @@ export class CreateHotelDto {
   description?: string;
 
   @IsString()
-  @MinLength(2)
-  @MaxLength(80)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @Length(2, 2, { message: 'country must be an ISO 3166-1 alpha-2 code' })
   country: string;
 
   @IsString()
@@ -43,4 +50,11 @@ export class CreateHotelDto {
   @Type(() => Number)
   @IsLongitude()
   longitude?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  amenityIds?: string[];
 }

@@ -1,11 +1,14 @@
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsISO31661Alpha2,
   IsOptional,
   IsPositive,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class HotelPaginationDto {
@@ -22,8 +25,20 @@ export class HotelPaginationDto {
 
   @IsOptional()
   @IsString()
+  @MinLength(3)
   @MaxLength(120)
   q?: string;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsISO31661Alpha2()
+  country?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  cityId?: string;
 
   @IsOptional()
   @Transform(({ value }) =>

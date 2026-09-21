@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { normalizeName, toSlug } from '../src/cities/city-slug';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -63,7 +64,20 @@ const amenities = [
   { code: 'air_conditioning', name: 'Aire acondicionado', scope: 'room' },
   { code: 'tv', name: 'Televisión', scope: 'room' },
   { code: 'safe', name: 'Caja fuerte', scope: 'room' },
+  { code: 'minibar', name: 'Minibar premium', scope: 'both' },
 ];
+
+const roomTypes = [
+  {
+    hotel: 'Urban Loft Madrid',
+    name: 'Double Superior',
+    capacity: 2,
+    priceCents: 12500,
+    defaultUnits: 1,
+  },
+];
+
+const hotelAmenities = [{ hotel: 'Hotel Mar Azul', amenity: 'minibar' }];
 
 async function main() {
   for (const amenity of amenities) {
@@ -74,19 +88,64 @@ async function main() {
     });
   }
 
-  for (const hotel of hotels) {
-    const exists = await prisma.hotel.findFirst({ where: { name: hotel.name } });
+  for (const { country, city, ...rest } of hotels) {
+    const exists = await prisma.hotel.findFirst({ where: { name: rest.name } });
+
+    if (exists) {
+      continue;
+    }
+
+    const name = normalizeName(city);
+
+    const { id: cityId } = await prisma.city.upsert({
+      where: { country_slug: { country, slug: toSlug(name) } },
+      update: {},
+      create: { country, name, slug: toSlug(name) },
+    });
+
+    await prisma.hotel.create({ data: { ...rest, cityId } });
+  }
+
+  for (const { hotel, ...rest } of roomTypes) {
+    const owner = await prisma.hotel.findFirstOrThrow({
+      where: { name: hotel },
+    });
+
+    const exists = await prisma.roomType.findFirst({
+      where: { hotelId: owner.id, name: rest.name },
+    });
+
     if (!exists) {
-      await prisma.hotel.create({ data: hotel });
+      await prisma.roomType.create({ data: { ...rest, hotelId: owner.id } });
     }
   }
 
-  const [hotelCount, amenityCount] = await Promise.all([
-    prisma.hotel.count(),
-    prisma.amenity.count(),
-  ]);
+  for (const link of hotelAmenities) {
+    const [hotel, amenity] = await Promise.all([
+      prisma.hotel.findFirstOrThrow({ where: { name: link.hotel } }),
+      prisma.amenity.findUniqueOrThrow({ where: { code: link.amenity } }),
+    ]);
 
-  console.log(`Seed done: ${hotelCount} hotels, ${amenityCount} amenities`);
+    await prisma.hotelAmenity.upsert({
+      where: {
+        hotelId_amenityId: { hotelId: hotel.id, amenityId: amenity.id },
+      },
+      update: {},
+      create: { hotelId: hotel.id, amenityId: amenity.id },
+    });
+  }
+
+  const [cityCount, hotelCount, amenityCount, roomTypeCount] =
+    await Promise.all([
+      prisma.city.count(),
+      prisma.hotel.count(),
+      prisma.amenity.count(),
+      prisma.roomType.count(),
+    ]);
+
+  console.log(
+    `Seed done: ${cityCount} cities, ${hotelCount} hotels, ${amenityCount} amenities, ${roomTypeCount} room types`,
+  );
 }
 
 main()

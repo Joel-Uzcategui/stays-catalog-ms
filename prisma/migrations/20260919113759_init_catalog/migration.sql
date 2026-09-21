@@ -1,10 +1,20 @@
 -- CreateTable
+CREATE TABLE "cities" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "country" CHAR(2) NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "cities_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "hotels" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "country" TEXT NOT NULL,
-    "city" TEXT NOT NULL,
+    "city_id" UUID NOT NULL,
     "address" TEXT NOT NULL,
     "latitude" DECIMAL(9,6),
     "longitude" DECIMAL(9,6),
@@ -38,6 +48,7 @@ CREATE TABLE "amenities" (
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "scope" TEXT NOT NULL DEFAULT 'hotel',
+    "active" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "amenities_pkey" PRIMARY KEY ("id")
 );
@@ -70,13 +81,22 @@ CREATE TABLE "photos" (
 );
 
 -- CreateIndex
-CREATE INDEX "hotels_city_idx" ON "hotels"("city");
+CREATE UNIQUE INDEX "cities_country_slug_key" ON "cities"("country", "slug");
+
+-- CreateIndex
+CREATE INDEX "cities_country_name_idx" ON "cities"("country", "name");
+
+-- CreateIndex
+CREATE INDEX "hotels_city_id_idx" ON "hotels"("city_id");
 
 -- CreateIndex
 CREATE INDEX "room_types_hotel_id_idx" ON "room_types"("hotel_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "amenities_code_key" ON "amenities"("code");
+
+-- AddForeignKey
+ALTER TABLE "hotels" ADD CONSTRAINT "hotels_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "cities"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "room_types" ADD CONSTRAINT "room_types_hotel_id_fkey" FOREIGN KEY ("hotel_id") REFERENCES "hotels"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -111,8 +131,18 @@ ALTER TABLE "photos"
   ADD CONSTRAINT "photos_belongs_to_one"
   CHECK (num_nonnulls("hotel_id", "room_type_id") = 1);
 
-DROP INDEX "hotels_city_idx";
-CREATE INDEX "idx_hotels_city" ON "hotels" ("city") WHERE "active";
+ALTER TABLE "cities"
+  ADD CONSTRAINT "cities_country_uppercase"
+  CHECK ("country" = upper("country"));
+
+DROP INDEX "hotels_city_id_idx";
+CREATE INDEX "idx_hotels_city" ON "hotels" ("city_id") WHERE "active";
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX "idx_hotels_name_trgm" ON "hotels" USING gin ("name" gin_trgm_ops);
+CREATE INDEX "idx_room_types_name_trgm" ON "room_types" USING gin ("name" gin_trgm_ops);
+CREATE INDEX "idx_cities_slug_trgm" ON "cities" USING gin ("slug" gin_trgm_ops);
 
 DROP INDEX "room_types_hotel_id_idx";
 CREATE INDEX "idx_room_types_hotel" ON "room_types" ("hotel_id") WHERE "active";

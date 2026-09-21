@@ -7,12 +7,25 @@ datasource db {
   provider = "postgresql"
 }
 
+model City {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String
+  country   String   @db.Char(2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  hotels Hotel[]
+
+  @@unique([country, slug])
+  @@index([country, name])
+  @@map("cities")
+}
+
 model Hotel {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
   description String?
-  country     String
-  city        String
+  cityId      String   @map("city_id") @db.Uuid
   address     String
   latitude    Decimal? @db.Decimal(9, 6)
   longitude   Decimal? @db.Decimal(9, 6)
@@ -20,11 +33,12 @@ model Hotel {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  city           City           @relation(fields: [cityId], references: [id])
   roomTypes      RoomType[]
   hotelAmenities HotelAmenity[]
   photos         Photo[]
 
-  @@index([city])
+  @@index([cityId])
   @@map("hotels")
 }
 
@@ -50,10 +64,11 @@ model RoomType {
 }
 
 model Amenity {
-  id    String @id @default(uuid()) @db.Uuid
-  code  String @unique
-  name  String
-  scope String @default("hotel")
+  id     String  @id @default(uuid()) @db.Uuid
+  code   String  @unique
+  name   String
+  scope  String  @default("hotel")
+  active Boolean @default(true)
 
   hotelAmenities    HotelAmenity[]
   roomTypeAmenities RoomTypeAmenity[]
