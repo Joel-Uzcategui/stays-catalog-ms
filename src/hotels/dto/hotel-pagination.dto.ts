@@ -30,7 +30,7 @@ export class HotelPaginationDto {
   q?: string;
 
   @IsOptional()
-  @Transform(({ value }) =>
+  @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )
   @IsISO31661Alpha2()
@@ -41,7 +41,7 @@ export class HotelPaginationDto {
   cityId?: string;
 
   @IsOptional()
-  @Transform(({ value }) =>
+  @Transform(({ value }: { value: unknown }) =>
     value === undefined ? undefined : value === true || value === 'true',
   )
   @IsBoolean()

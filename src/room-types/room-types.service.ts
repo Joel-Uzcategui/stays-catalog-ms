@@ -3,6 +3,7 @@ import { RpcException } from '@nestjs/microservices';
 import { Prisma } from '../generated/prisma/client';
 
 import { AmenitiesService } from '../amenities/amenities.service';
+import { CatalogEventsService } from '../events/catalog-events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateRoomTypeDto,
@@ -33,6 +34,7 @@ export class RoomTypesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly amenities: AmenitiesService,
+    private readonly events: CatalogEventsService,
   ) {}
 
   async create(dto: CreateRoomTypeDto) {
@@ -62,6 +64,8 @@ export class RoomTypesService {
       });
 
     this.logger.log(`Room type created: ${roomType.id}`);
+
+    await this.events.hotelChanged(roomType.hotelId);
 
     return this.flattenDetail(roomType);
   }
@@ -180,7 +184,10 @@ export class RoomTypesService {
           await this.amenities.assertAssignable(amenityIds, 'roomType', tx);
           await tx.roomTypeAmenity.deleteMany({ where: { roomTypeId: id } });
           await tx.roomTypeAmenity.createMany({
-            data: amenityIds.map((amenityId) => ({ roomTypeId: id, amenityId })),
+            data: amenityIds.map((amenityId) => ({
+              roomTypeId: id,
+              amenityId,
+            })),
           });
         }
 
@@ -197,6 +204,8 @@ export class RoomTypesService {
         throw error;
       });
 
+    await this.events.hotelChanged(roomType.hotelId);
+
     return this.flattenDetail(roomType);
   }
 
@@ -209,10 +218,14 @@ export class RoomTypesService {
 
     this.logger.log(`Room type deactivated: ${id}`);
 
-    return this.prisma.roomType.update({
+    const updated = await this.prisma.roomType.update({
       where: { id },
       data: { active: false },
     });
+
+    await this.events.hotelChanged(updated.hotelId);
+
+    return updated;
   }
 
   private flattenDetail(roomType: RoomTypeWithDetail) {

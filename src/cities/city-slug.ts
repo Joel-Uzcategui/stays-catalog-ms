@@ -6,4 +6,5 @@ export const toSlug = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-export const normalizeName = (value: string) => value.trim().replace(/\s+/g, ' ');
+export const normalizeName = (value: string) =>
+  value.trim().replace(/\s+/g, ' ');

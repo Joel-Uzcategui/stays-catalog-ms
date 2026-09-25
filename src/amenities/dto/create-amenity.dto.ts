@@ -1,4 +1,11 @@
-import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export const AMENITY_SCOPES = ['hotel', 'room', 'both'] as const;
 
@@ -9,7 +16,8 @@ export class CreateAmenityDto {
   @MinLength(2)
   @MaxLength(60)
   @Matches(/^[a-z0-9_]+$/, {
-    message: 'code must contain only lowercase letters, numbers and underscores',
+    message:
+      'code must contain only lowercase letters, numbers and underscores',
   })
   code: string;
 

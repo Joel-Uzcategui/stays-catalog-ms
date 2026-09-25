@@ -42,10 +42,8 @@ export class AmenitiesController {
     return this.amenitiesService.findForHotel(hotelId);
   }
 
-
   @MessagePattern('catalog.amenity.findForRoomType')
   findForRoomType(@Payload('roomTypeId', ParseUUIDPipe) roomTypeId: string) {
     return this.amenitiesService.findForRoomType(roomTypeId);
   }
-
 }

@@ -25,7 +25,7 @@ export class CreateHotelDto {
   description?: string;
 
   @IsString()
-  @Transform(({ value }) =>
+  @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )
   @Length(2, 2, { message: 'country must be an ISO 3166-1 alpha-2 code' })

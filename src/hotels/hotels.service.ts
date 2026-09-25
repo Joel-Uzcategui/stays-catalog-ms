@@ -4,11 +4,16 @@ import { Prisma } from '../generated/prisma/client';
 
 import { AmenitiesService } from '../amenities/amenities.service';
 import { CitiesService } from '../cities/cities.service';
+import { CatalogEventsService } from '../events/catalog-events.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateHotelDto, HotelPaginationDto, UpdateHotelDto } from './dto';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
+const PUBLIC_CACHE_TTL = 600;
+
+const publicKey = (id: string) => `catalog:hotel:public:${id}`;
 
 const withCity = {
   city: { select: { id: true, name: true, country: true } },
@@ -25,6 +30,10 @@ const withDetail = {
 
 type HotelWithCity = Prisma.HotelGetPayload<{ include: typeof withCity }>;
 type HotelWithDetail = Prisma.HotelGetPayload<{ include: typeof withDetail }>;
+type PublicHotel = Omit<HotelWithCity, 'city'> & {
+  city: string;
+  country: string;
+};
 
 @Injectable()
 export class HotelsService {
@@ -34,6 +43,8 @@ export class HotelsService {
     private readonly prisma: PrismaService,
     private readonly cities: CitiesService,
     private readonly amenities: AmenitiesService,
+    private readonly redis: RedisService,
+    private readonly events: CatalogEventsService,
   ) {}
 
   async create(dto: CreateHotelDto) {
@@ -49,7 +60,9 @@ export class HotelsService {
           ...rest,
           cityId,
           hotelAmenities: {
-            createMany: { data: amenityIds.map((amenityId) => ({ amenityId })) },
+            createMany: {
+              data: amenityIds.map((amenityId) => ({ amenityId })),
+            },
           },
         },
         include: withDetail,
@@ -57,6 +70,8 @@ export class HotelsService {
     });
 
     this.logger.log(`Hotel created: ${hotel.id}`);
+
+    await this.events.hotelChanged(hotel.id);
 
     return this.flattenDetail(hotel);
   }
@@ -115,6 +130,13 @@ export class HotelsService {
   }
 
   async findOnePublic(id: string) {
+    const key = publicKey(id);
+    const cached = await this.redis.get<PublicHotel>(key);
+
+    if (cached) {
+      return cached;
+    }
+
     const hotel = await this.prisma.hotel.findFirst({
       where: { id, active: true },
       include: withCity,
@@ -124,7 +146,11 @@ export class HotelsService {
       throw this.notFound(id);
     }
 
-    return this.flatten(hotel);
+    const result = this.flatten(hotel);
+
+    await this.redis.set(key, result, PUBLIC_CACHE_TTL);
+
+    return result;
   }
 
   async update(dto: UpdateHotelDto) {
@@ -174,6 +200,9 @@ export class HotelsService {
         throw error;
       });
 
+    await this.redis.del(publicKey(id));
+    await this.events.hotelChanged(id);
+
     return this.flattenDetail(hotel);
   }
 
@@ -191,6 +220,9 @@ export class HotelsService {
       data: { active: false },
       include: withDetail,
     });
+
+    await this.redis.del(publicKey(id));
+    await this.events.hotelChanged(id);
 
     return this.flattenDetail(updated);
   }

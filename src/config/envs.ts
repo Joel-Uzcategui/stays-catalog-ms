@@ -5,6 +5,8 @@ interface EnvVars {
   DATABASE_URL: string;
   RABBITMQ_URL: string;
   RABBITMQ_QUEUE: string;
+  SEARCH_QUEUE: string;
+  REDIS_URL: string;
 }
 
 const envsSchema = joi
@@ -12,6 +14,8 @@ const envsSchema = joi
     DATABASE_URL: joi.string().required(),
     RABBITMQ_URL: joi.string().required(),
     RABBITMQ_QUEUE: joi.string().required(),
+    SEARCH_QUEUE: joi.string().required(),
+    REDIS_URL: joi.string().required(),
   })
   .unknown(true);
 
@@ -30,4 +34,6 @@ export const envs = {
   databaseUrl: envVars.DATABASE_URL,
   rabbitmqUrl: envVars.RABBITMQ_URL,
   rabbitmqQueue: envVars.RABBITMQ_QUEUE,
+  searchQueue: envVars.SEARCH_QUEUE,
+  redisUrl: envVars.REDIS_URL,
 };

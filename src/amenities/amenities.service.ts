@@ -50,7 +50,9 @@ export class AmenitiesService {
     const where: Prisma.AmenityWhereInput = { active: dto.active ?? true };
 
     if (dto.scope) {
-      where.scope = { in: dto.scope === 'both' ? ['both'] : [dto.scope, 'both'] };
+      where.scope = {
+        in: dto.scope === 'both' ? ['both'] : [dto.scope, 'both'],
+      };
     }
 
     if (dto.q) {
@@ -132,7 +134,6 @@ export class AmenitiesService {
     return rows.map((row) => row.amenity);
   }
 
-
   async findForRoomType(roomTypeId: string) {
     await this.ensureRoomType(roomTypeId);
 
@@ -144,7 +145,6 @@ export class AmenitiesService {
 
     return rows.map((row) => row.amenity);
   }
-
 
   async assertAssignable(
     ids: string[],
