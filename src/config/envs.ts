@@ -6,6 +6,7 @@ interface EnvVars {
   RABBITMQ_URL: string;
   RABBITMQ_QUEUE: string;
   SEARCH_QUEUE: string;
+  BOOKING_QUEUE: string;
   REDIS_URL: string;
 }
 
@@ -15,6 +16,7 @@ const envsSchema = joi
     RABBITMQ_URL: joi.string().required(),
     RABBITMQ_QUEUE: joi.string().required(),
     SEARCH_QUEUE: joi.string().required(),
+    BOOKING_QUEUE: joi.string().required(),
     REDIS_URL: joi.string().required(),
   })
   .unknown(true);
@@ -35,5 +37,6 @@ export const envs = {
   rabbitmqUrl: envVars.RABBITMQ_URL,
   rabbitmqQueue: envVars.RABBITMQ_QUEUE,
   searchQueue: envVars.SEARCH_QUEUE,
+  bookingQueue: envVars.BOOKING_QUEUE,
   redisUrl: envVars.REDIS_URL,
 };

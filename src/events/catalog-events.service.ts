@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
-import { SEARCH_SERVICE } from '../config';
+import { BOOKING_SERVICE, SEARCH_SERVICE } from '../config';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const HOTEL_CHANGED = 'catalog.hotel.changed';
@@ -14,6 +14,7 @@ export class CatalogEventsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(SEARCH_SERVICE) private readonly searchClient: ClientProxy,
+    @Inject(BOOKING_SERVICE) private readonly bookingClient: ClientProxy,
   ) {}
 
   async hotelChanged(hotelId: string) {
@@ -23,12 +24,19 @@ export class CatalogEventsService {
       return;
     }
 
-    try {
-      await firstValueFrom(this.searchClient.emit(HOTEL_CHANGED, payload));
-    } catch (error) {
-      this.logger.warn(
-        `Could not publish ${HOTEL_CHANGED} for ${hotelId}: ${String(error)}`,
-      );
+    const targets: [string, ClientProxy][] = [
+      ['search', this.searchClient],
+      ['booking', this.bookingClient],
+    ];
+
+    for (const [name, client] of targets) {
+      try {
+        await firstValueFrom(client.emit(HOTEL_CHANGED, payload));
+      } catch (error) {
+        this.logger.warn(
+          `Could not publish ${HOTEL_CHANGED} for ${hotelId} to ${name}: ${String(error)}`,
+        );
+      }
     }
   }
 
@@ -58,7 +66,15 @@ export class CatalogEventsService {
         },
         roomTypes: {
           where: { active: true },
-          select: { capacity: true, priceCents: true },
+          select: {
+            id: true,
+            name: true,
+            capacity: true,
+            priceCents: true,
+            currency: true,
+            defaultUnits: true,
+            updatedAt: true,
+          },
         },
       },
     });
@@ -89,6 +105,15 @@ export class CatalogEventsService {
         ? Math.max(...rooms.map((room) => room.capacity))
         : null,
       roomTypeCount: rooms.length,
+      roomTypes: rooms.map((room) => ({
+        id: room.id,
+        name: room.name,
+        capacity: room.capacity,
+        priceCents: room.priceCents,
+        currency: room.currency,
+        defaultUnits: room.defaultUnits,
+        updatedAt: room.updatedAt.toISOString(),
+      })),
       active: hotel.active,
       updatedAt: hotel.updatedAt.toISOString(),
     };

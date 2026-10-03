@@ -1,1 +1,2 @@
 export const SEARCH_SERVICE = 'SEARCH_SERVICE';
+export const BOOKING_SERVICE = 'BOOKING_SERVICE';
