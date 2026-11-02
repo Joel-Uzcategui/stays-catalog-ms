@@ -22,6 +22,11 @@ export class PhotosController {
     return this.photosService.createForRoomType(dto);
   }
 
+  @MessagePattern('catalog.photo.findOne')
+  findOne(@Payload('id', new ParseUUIDPipe({ version: '4' })) id: string) {
+    return this.photosService.findOne(id);
+  }
+
   @MessagePattern('catalog.photo.findForHotel')
   findForHotel(@Payload('hotelId', ParseUUIDPipe) hotelId: string) {
     return this.photosService.findForHotel(hotelId);

@@ -76,6 +76,11 @@ export class CatalogEventsService {
             updatedAt: true,
           },
         },
+        photos: {
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          take: 1,
+          select: { id: true },
+        },
       },
     });
 
@@ -98,6 +103,9 @@ export class CatalogEventsService {
           ? null
           : { lat: Number(hotel.latitude), lon: Number(hotel.longitude) },
       amenityCodes: hotel.hotelAmenities.map((row) => row.amenity.code),
+      // Only the first photo travels: the card needs a cover, and the detail
+      // page asks catalog for the full set anyway.
+      coverPhotoId: hotel.photos[0]?.id ?? null,
       priceFrom: rooms.length
         ? Math.min(...rooms.map((room) => room.priceCents))
         : null,

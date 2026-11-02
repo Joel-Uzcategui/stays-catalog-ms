@@ -32,6 +32,19 @@ export class PhotosService {
     return photo;
   }
 
+  async findOne(id: string) {
+    const photo = await this.prisma.photo.findUnique({ where: { id } });
+
+    if (!photo) {
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: `Photo ${id} not found`,
+      });
+    }
+
+    return photo;
+  }
+
   async findForHotel(hotelId: string) {
     await this.ensureHotel(hotelId);
 
