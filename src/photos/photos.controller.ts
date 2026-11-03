@@ -5,6 +5,7 @@ import { PhotosService } from './photos.service';
 import {
   CreateHotelPhotoDto,
   CreateRoomTypePhotoDto,
+  ReorderHotelPhotosDto,
   UpdatePhotoDto,
 } from './dto';
 
@@ -35,6 +36,11 @@ export class PhotosController {
   @MessagePattern('catalog.photo.findForRoomType')
   findForRoomType(@Payload('roomTypeId', ParseUUIDPipe) roomTypeId: string) {
     return this.photosService.findForRoomType(roomTypeId);
+  }
+
+  @MessagePattern('catalog.photo.reorderForHotel')
+  reorderForHotel(@Payload() dto: ReorderHotelPhotosDto) {
+    return this.photosService.reorderForHotel(dto);
   }
 
   @MessagePattern('catalog.photo.update')
